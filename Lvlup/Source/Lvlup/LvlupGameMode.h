@@ -10,7 +10,7 @@ class FName;
 class ATriggerBox;
 class APlacableActor;
 
-UCLASS(minimalapi)
+UCLASS(minimalapi, config = GameMode)
 class ALvlupGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
@@ -25,49 +25,50 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	UPROPERTY()
-	ATriggerBox* _TriggerBox;
-
+	ATriggerBox* TriggerBox;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc")
-	FName _TagToFind;
+	FName SearchTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0", ClampMax = "100"))
-	uint8 _MaxSphere;
-
-	UPROPERTY(VisibleAnywhere , BlueprintReadOnly, Category = "-Misc")
-	uint8 _CurrentSphere;
+	uint8 MaxSphere;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0"))
-	float _DistanceBetweenSpawn;
+	float DistanceBetweenActors;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0"))
-	float _LifespanMin;
+	float LifespanMin;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0"))
-	float _LifespanMax;
+	float LifespanMax;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc")
-	TSubclassOf<APlacableActor> _PlacableActor;
+	TSubclassOf<APlacableActor> ActorToSpawn;
 
 	UFUNCTION(BlueprintCallable)
 	ATriggerBox* FindTriggerBoxByTag(FName Tag);
 
 	UFUNCTION()
-	FVector GetRandLocationInTriggerBox();
+	FVector GetRandLocationInTriggerBox();	
 
-	TArray<FVector> SpawnLocations;
+	TArray<APlacableActor*> SpawnedActors;
 
-private:
+	UFUNCTION()
+	void EnableSpawning();
 
-	
+	UFUNCTION()
+	void DisableSpawning();
+
+	UFUNCTION(BlueprintCallable)
+	uint8 GetNuberOfActors();
+
+private:	
 
 	bool bIsEnoughSpace(FVector NewLocation);
 
-	void SpawnTarget();
+	void SpawnActor();
 
-	
-
-
+	bool bSpawningEnabled;
 
 };
 

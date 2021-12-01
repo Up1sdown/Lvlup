@@ -15,9 +15,9 @@ ALvlupGameMode::ALvlupGameMode()
 
 	// set default pawn class to our Blueprinted character
 	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPersonCPP/Blueprints/FirstPersonCharacter"));
-	DefaultPawnClass = PlayerPawnClassFinder.Class;
+	DefaultPawnClass = PlayerPawnClassFinder.Class;	
 
-	_CurrentSphere = 0;
+	bSpawningEnabled = false;
 
 	// use our custom HUD class
 	HUDClass = ALvlupHUD::StaticClass();
@@ -26,22 +26,21 @@ ALvlupGameMode::ALvlupGameMode()
 
 }
 
-ATriggerBox* ALvlupGameMode::FindTriggerBoxByTag(FName Tag)
+ATriggerBox* ALvlupGameMode::FindTriggerBoxByTag(FName TagToFind)
 {
-	TArray<AActor*> FoundTriggerBox;
+	TArray<AActor*> FoundTriggerBoxes;
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATriggerBox::StaticClass(), FoundTriggerBox);
-	for (auto TempTriggerBox : FoundTriggerBox)
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), ATriggerBox::StaticClass(), FoundTriggerBoxes);
+	for (AActor* FoundTriggerBox : FoundTriggerBoxes)
 	{
-		ATriggerBox* TriggerBox = Cast<ATriggerBox>(TempTriggerBox);
-		if (TriggerBox)
+		ATriggerBox* TriggerBoxReference = Cast<ATriggerBox>(FoundTriggerBox);
+		if (TriggerBoxReference)
 		{
-			for (auto TempTag : TriggerBox->Tags)
+			for (auto Tag : TriggerBoxReference->Tags)
 			{
-				if (TempTag == Tag)
+				if (Tag == TagToFind)
 				{
-					//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, TEXT("TriggerBox found"));
-					return TriggerBox;					
+					return TriggerBoxReference;					
 				}
 			}
 		}
@@ -59,8 +58,8 @@ FVector ALvlupGameMode::GetRandLocationInTriggerBox()
 	FVector Extent;
 
 	//Get TriggerBox location and extent
-	TriggerBoxLocation = _TriggerBox->GetActorLocation();
-	Extent = _TriggerBox->GetComponentsBoundingBox().GetExtent();	
+	TriggerBoxLocation = TriggerBox->GetActorLocation();
+	Extent = TriggerBox->GetComponentsBoundingBox().GetExtent();	
 
 	//Calculate the minimum  X, Y, and Z
 	MinX = TriggerBoxLocation.X - Extent.X;
@@ -81,21 +80,38 @@ FVector ALvlupGameMode::GetRandLocationInTriggerBox()
 
 }
 
+
+void ALvlupGameMode::EnableSpawning()
+{
+	bSpawningEnabled = true;
+}
+
+void ALvlupGameMode::DisableSpawning()
+{
+	bSpawningEnabled = false;
+}
+
+uint8 ALvlupGameMode::GetNuberOfActors()
+{
+	return SpawnedActors.Num();
+}
+
 bool ALvlupGameMode::bIsEnoughSpace(FVector NewLocation)
 {	
-	for (auto Location : SpawnLocations)
+	for (auto SpawnedActor : SpawnedActors)
 	{		
-		if (FVector::Dist(NewLocation, Location) < _DistanceBetweenSpawn)
+		if (FVector::Dist(NewLocation, SpawnedActor->GetActorLocation()) < DistanceBetweenActors)
 		{
 			return false;
 		}
-	}	
+	}
 	return true;
 }
 
-void ALvlupGameMode::SpawnTarget()
+
+void ALvlupGameMode::SpawnActor()
 {
-	if (_TriggerBox)
+	if (TriggerBox)
 	{
 		//Check for a valid World:
 		UWorld* const World = GetWorld();
@@ -103,29 +119,25 @@ void ALvlupGameMode::SpawnTarget()
 		if (World)
 		{
 			//Set the spawn parameters
-			FActorSpawnParameters SpawnParams;		
-			//SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+			FActorSpawnParameters SpawnParams;					
 			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding;
 
 			//Get a random location
 			FVector SpawnLocation = GetRandLocationInTriggerBox();
-			FRotator SpawnRotation;
-			//FTransform SpawnTransform = FTransform(FQuat(), SpawnLocation, FVector(2, 2, 2));
-
+			FRotator SpawnRotation;			
+			FTransform SpawnTransform = FTransform(SpawnLocation);
+			
 			if (bIsEnoughSpace(SpawnLocation))
 			{
-				APlacableActor* SpawnedPlacableActor = World->SpawnActor<APlacableActor>(_PlacableActor, SpawnLocation, SpawnRotation, SpawnParams);
-				if (SpawnedPlacableActor)
+				//APlacableActor* SpawnedPlacableActor = World->SpawnActor<APlacableActor>(ActorToSpawn, SpawnLocation, SpawnRotation, SpawnParams);
+				APlacableActor* SpawnedPlacableActor = World->SpawnActorDeferred<APlacableActor>(ActorToSpawn, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+				if (IsValid(SpawnedPlacableActor))
 				{
-					SpawnedPlacableActor->SetLifeSpan(FMath::FRandRange(_LifespanMin, _LifespanMax));
-					SpawnLocations.Add(SpawnLocation);
-					
-				}
-				_CurrentSphere++;
-			}
-			//APlacableActor* SpawnedPlacableActor = World->SpawnActorDeferred<APlacableActor>(_PlacableActor, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
-			
-			
+					SpawnedPlacableActor->SetLifeSpan(FMath::FRandRange(LifespanMin, LifespanMax));					
+					SpawnedActors.Add(SpawnedPlacableActor);
+					SpawnedPlacableActor->FinishSpawning(SpawnTransform);
+				}				
+			}					
 		}
 	}
 }
@@ -134,17 +146,20 @@ void ALvlupGameMode::BeginPlay()
 {
 	Super::BeginPlay();		
 	
-	_TriggerBox = FindTriggerBoxByTag(_TagToFind);
+	TriggerBox = FindTriggerBoxByTag(SearchTag);
 }
 
 void ALvlupGameMode::Tick(float DeltaSeconds)
 {
-	if (_CurrentSphere >= _MaxSphere)
+	if (!bSpawningEnabled)
 	{
 		return;
 	}
 
-	SpawnTarget();
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, FString::FromInt(_CurrentSphere));
+	if (SpawnedActors.Num() < MaxSphere)
+	{
+		SpawnActor();
+		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, FString::FromInt(SpawnedActors.Num()));
+	}	
 }
 

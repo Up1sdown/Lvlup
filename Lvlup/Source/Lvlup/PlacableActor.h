@@ -19,13 +19,16 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc")
+	UStaticMeshComponent* StaticMeshComp;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void Destroyed() override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "-Misc")
-	UStaticMeshComponent* Mesh;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "-Misc")
+	//UStaticMeshComponent* Mesh;
 
 };

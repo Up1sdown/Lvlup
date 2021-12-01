@@ -88,6 +88,11 @@ public:
 
 protected:
 	
+	void EnableSpawning();
+
+	void DisableSpawning();
+
+
 	/** Fires a projectile. */
 	void OnFire();
 

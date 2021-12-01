@@ -2,6 +2,7 @@
 
 #include "LvlupCharacter.h"
 #include "LvlupProjectile.h"
+#include "LvlupGameMode.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -125,6 +126,10 @@ void ALvlupCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ALvlupCharacter::OnResetVR);
 
+	PlayerInputComponent->BindAction("EnableSpawning", IE_Pressed, this, &ALvlupCharacter::EnableSpawning);
+	PlayerInputComponent->BindAction("DisableSpawning", IE_Pressed, this, &ALvlupCharacter::DisableSpawning);
+
+
 	// Bind movement events
 	PlayerInputComponent->BindAxis("MoveForward", this, &ALvlupCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ALvlupCharacter::MoveRight);
@@ -136,6 +141,34 @@ void ALvlupCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInp
 	PlayerInputComponent->BindAxis("TurnRate", this, &ALvlupCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &ALvlupCharacter::LookUpAtRate);
+
+
+}
+
+void ALvlupCharacter::EnableSpawning()
+{
+	UObject* World = GetWorld();
+	if (World)
+	{
+		ALvlupGameMode* GameMode = Cast<ALvlupGameMode>(UGameplayStatics::GetGameMode(World));
+		if (GameMode)
+		{
+			GameMode->EnableSpawning();
+		}
+	}
+}
+
+void ALvlupCharacter::DisableSpawning()
+{
+	UObject* World = GetWorld();
+	if (World)
+	{
+		ALvlupGameMode* GameMode = Cast<ALvlupGameMode>(UGameplayStatics::GetGameMode(World));
+		if (GameMode)
+		{
+			GameMode->DisableSpawning();
+		}
+	}
 }
 
 void ALvlupCharacter::OnFire()
