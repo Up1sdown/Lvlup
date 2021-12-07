@@ -9,6 +9,7 @@
 class FName;
 class ATriggerBox;
 class APlacableActor;
+class ALvlupCharacter;
 
 UCLASS(minimalapi, config = GameMode)
 class ALvlupGameMode : public AGameModeBase
@@ -42,6 +43,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0"))
 	float LifespanMax;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0"))
+	float UnacceptableDistance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0"))
+	float InitialScale;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "0", ClampMax = "1"))
+	float FinalScale;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc", meta = (ClampMin = "1"))
+	float NumberOfSteps;
+	
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "-Misc")
 	TSubclassOf<APlacableActor> ActorToSpawn;
 
@@ -56,19 +70,30 @@ public:
 	UFUNCTION()
 	void EnableSpawning();
 
+	UFUNCTION(BlueprintCallable)
+	void AddToScore(float PointsToAdd);
+
 	UFUNCTION()
 	void DisableSpawning();
 
 	UFUNCTION(BlueprintCallable)
-	uint8 GetNuberOfActors();
+	uint8 GetNumberOfActors();
+	
+	UFUNCTION(BlueprintCallable)
+	uint8 GetMaxNumberOfTargets();
 
 private:	
 
 	bool bIsEnoughSpace(FVector NewLocation);
 
+	bool bIsTooClose(FVector NewLocation);
+
 	void SpawnActor();
 
 	bool bSpawningEnabled;
+
+	UPROPERTY()
+	ALvlupCharacter* PlayerCharacter;
 
 };
 

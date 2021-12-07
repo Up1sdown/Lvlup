@@ -196,7 +196,7 @@ void ALvlupCharacter::OnFire()
 				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 				// spawn the projectile at the muzzle
-				World->SpawnActor<ALvlupProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+				World->SpawnActor<ALvlupProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);				
 			}
 		}
 	}

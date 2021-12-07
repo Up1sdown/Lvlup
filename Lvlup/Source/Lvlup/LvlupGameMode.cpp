@@ -14,8 +14,8 @@ ALvlupGameMode::ALvlupGameMode()
 {
 
 	// set default pawn class to our Blueprinted character
-	static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPersonCPP/Blueprints/FirstPersonCharacter"));
-	DefaultPawnClass = PlayerPawnClassFinder.Class;	
+	//static ConstructorHelpers::FClassFinder<APawn> PlayerPawnClassFinder(TEXT("/Game/FirstPersonCPP/Blueprints/FirstPersonCharacter"));
+	//DefaultPawnClass = PlayerPawnClassFinder.Class;	
 
 	bSpawningEnabled = false;
 
@@ -86,14 +86,28 @@ void ALvlupGameMode::EnableSpawning()
 	bSpawningEnabled = true;
 }
 
+void ALvlupGameMode::AddToScore(float TargetScale)
+{
+	if (PlayerCharacter)
+	{		
+		PlayerCharacter->PlayerScore += (1.01f - TargetScale) * 10;
+		//GEngine->AddOnScreenDebugMessage(-1,10,FColor::Red, FString::SanitizeFloat(PlayerCharacter->PlayerScore));
+	}
+}
+
 void ALvlupGameMode::DisableSpawning()
 {
 	bSpawningEnabled = false;
 }
 
-uint8 ALvlupGameMode::GetNuberOfActors()
+uint8 ALvlupGameMode::GetNumberOfActors()
 {
 	return SpawnedActors.Num();
+}
+
+uint8 ALvlupGameMode::GetMaxNumberOfTargets()
+{
+	return MaxSphere;
 }
 
 bool ALvlupGameMode::bIsEnoughSpace(FVector NewLocation)
@@ -108,6 +122,12 @@ bool ALvlupGameMode::bIsEnoughSpace(FVector NewLocation)
 	return true;
 }
 
+
+bool ALvlupGameMode::bIsTooClose(FVector NewLocation)
+{
+	float DistanceToPlayer = FVector::Dist(NewLocation, PlayerCharacter->GetActorLocation());
+	return DistanceToPlayer < UnacceptableDistance;	
+}
 
 void ALvlupGameMode::SpawnActor()
 {
@@ -124,18 +144,22 @@ void ALvlupGameMode::SpawnActor()
 
 			//Get a random location
 			FVector SpawnLocation = GetRandLocationInTriggerBox();
-			FRotator SpawnRotation;			
 			FTransform SpawnTransform = FTransform(SpawnLocation);
 			
 			if (bIsEnoughSpace(SpawnLocation))
 			{
 				//APlacableActor* SpawnedPlacableActor = World->SpawnActor<APlacableActor>(ActorToSpawn, SpawnLocation, SpawnRotation, SpawnParams);
-				APlacableActor* SpawnedPlacableActor = World->SpawnActorDeferred<APlacableActor>(ActorToSpawn, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding);
+				APlacableActor* SpawnedPlacableActor = World->SpawnActorDeferred<APlacableActor>(ActorToSpawn, SpawnTransform, nullptr, nullptr, ESpawnActorCollisionHandlingMethod::DontSpawnIfColliding); // DontSpawnIfColliding
 				if (IsValid(SpawnedPlacableActor))
 				{
 					SpawnedPlacableActor->SetLifeSpan(FMath::FRandRange(LifespanMin, LifespanMax));					
 					SpawnedActors.Add(SpawnedPlacableActor);
-					SpawnedPlacableActor->FinishSpawning(SpawnTransform);
+					SpawnedPlacableActor->PlayerActor = PlayerCharacter;
+					SpawnedPlacableActor->MaxScale = FinalScale;
+					SpawnedPlacableActor->AcceptableDistance = UnacceptableDistance;
+					SpawnedPlacableActor->NumberOfSteps = NumberOfSteps;
+					SpawnTransform.SetScale3D(FVector(InitialScale, InitialScale, InitialScale));					
+					SpawnedPlacableActor->FinishSpawning(SpawnTransform);					
 				}				
 			}					
 		}
@@ -147,6 +171,7 @@ void ALvlupGameMode::BeginPlay()
 	Super::BeginPlay();		
 	
 	TriggerBox = FindTriggerBoxByTag(SearchTag);
+	PlayerCharacter = Cast<ALvlupCharacter>(UGameplayStatics::GetPlayerCharacter(GetWorld(), 0));
 }
 
 void ALvlupGameMode::Tick(float DeltaSeconds)
@@ -159,7 +184,7 @@ void ALvlupGameMode::Tick(float DeltaSeconds)
 	if (SpawnedActors.Num() < MaxSphere)
 	{
 		SpawnActor();
-		GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, FString::FromInt(SpawnedActors.Num()));
+		//GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Red, FString::FromInt(SpawnedActors.Num()));
 	}	
 }
 
